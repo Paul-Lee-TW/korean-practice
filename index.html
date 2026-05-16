@@ -694,6 +694,15 @@ document.getElementById('startBtn').addEventListener('click', e => {
   startApp();
 });
 
+function keepInputFocused(el) {
+  el.addEventListener('mousedown', e => {
+    if (started) e.preventDefault();
+  });
+}
+['play', 'next', 'skip'].forEach(id => keepInputFocused(document.getElementById(id)));
+document.querySelectorAll('#modes button').forEach(keepInputFocused);
+keepInputFocused(els.char);
+
 if ('speechSynthesis' in window) {
   loadVoice();
   window.speechSynthesis.onvoiceschanged = loadVoice;
