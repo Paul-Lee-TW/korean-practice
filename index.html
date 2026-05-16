@@ -2,7 +2,13 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="한글 연습">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#4a6cf7">
+<meta name="format-detection" content="telephone=no">
 <title>한글 발음 연습 — Korean Hangul Practice</title>
 <style>
   :root {
@@ -19,24 +25,34 @@
     --border: #d8dde6;
   }
   * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
   body {
     font-family: -apple-system, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
     margin: 0;
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
+    min-height: 100dvh;
     display: flex;
     align-items: flex-start;
     justify-content: center;
-    padding: 24px;
+    padding:
+      max(20px, env(safe-area-inset-top))
+      max(16px, env(safe-area-inset-right))
+      max(20px, env(safe-area-inset-bottom))
+      max(16px, env(safe-area-inset-left));
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: contain;
   }
+  button, .character, input { touch-action: manipulation; }
+  button { -webkit-tap-highlight-color: transparent; }
   .app {
     background: var(--card);
     border-radius: 16px;
     box-shadow: 0 8px 32px rgba(0,0,0,0.08);
     max-width: 640px;
     width: 100%;
-    padding: 28px 32px 32px;
+    padding: 24px 24px 28px;
   }
   h1 {
     margin: 0 0 4px;
@@ -57,13 +73,14 @@
     margin-bottom: 20px;
   }
   .modes button {
-    padding: 8px 14px;
+    padding: 10px 16px;
+    min-height: 40px;
     border: 1.5px solid var(--border);
     background: var(--card);
     color: var(--text);
     border-radius: 999px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 15px;
     transition: all 0.15s;
   }
   .modes button:hover { border-color: var(--primary); }
@@ -76,6 +93,8 @@
     text-align: center;
     padding: 24px 0 16px;
     user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
   }
   .character {
     font-size: 140px;
@@ -101,13 +120,17 @@
   }
   input[type="text"] {
     font-size: 22px;
-    padding: 10px 14px;
-    width: 240px;
+    padding: 12px 14px;
+    width: 280px;
+    max-width: 100%;
+    min-height: 48px;
     text-align: center;
     border: 2px solid var(--border);
     border-radius: 8px;
     outline: none;
     transition: all 0.15s;
+    -webkit-appearance: none;
+    appearance: none;
   }
   input[type="text"]:focus { border-color: var(--primary); }
   input.correct { border-color: var(--correct); background: var(--correct-bg); }
@@ -132,8 +155,9 @@
     flex-wrap: wrap;
   }
   .controls button {
-    padding: 9px 16px;
-    font-size: 14px;
+    padding: 12px 18px;
+    min-height: 44px;
+    font-size: 15px;
     background: var(--card);
     border: 1.5px solid var(--border);
     border-radius: 8px;
@@ -150,14 +174,30 @@
     background: var(--primary-dark);
     color: white;
   }
-  .score {
-    text-align: center;
+  .score-row {
     margin-top: 18px;
     padding-top: 14px;
     border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .score {
     color: var(--muted);
     font-size: 13px;
   }
+  .reset-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 12px;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 6px 8px;
+  }
+  .reset-btn:hover { color: var(--primary); }
   .voice-warn {
     background: #fff8e1;
     color: #8a6d00;
@@ -170,9 +210,83 @@
     display: none;
   }
   .voice-warn.show { display: block; }
+
+  .start-overlay {
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(135deg, #4a6cf7 0%, #3852c9 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    cursor: pointer;
+    color: white;
+    text-align: center;
+    padding:
+      max(24px, env(safe-area-inset-top))
+      max(24px, env(safe-area-inset-right))
+      max(24px, env(safe-area-inset-bottom))
+      max(24px, env(safe-area-inset-left));
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+  .start-overlay.hidden { display: none; }
+  .start-overlay .panel { max-width: 320px; }
+  .start-overlay .logo {
+    font-size: 72px;
+    line-height: 1;
+    margin-bottom: 16px;
+  }
+  .start-overlay h2 {
+    font-size: 26px;
+    margin: 0 0 10px;
+    font-weight: 600;
+  }
+  .start-overlay p {
+    font-size: 15px;
+    opacity: 0.9;
+    margin: 0 0 28px;
+    line-height: 1.6;
+  }
+  .start-overlay .start-btn {
+    background: white;
+    color: var(--primary-dark);
+    border: none;
+    padding: 16px 40px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 999px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  }
+
+  @media (max-width: 480px) {
+    .app {
+      padding: 20px 18px 22px;
+      border-radius: 14px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+    }
+    h1 { font-size: 22px; }
+    .subtitle { font-size: 12px; margin-bottom: 16px; }
+    .modes { gap: 5px; margin-bottom: 16px; }
+    .modes button { padding: 9px 13px; font-size: 14px; }
+    .character { font-size: 110px; padding: 6px 16px; }
+    .char-area { padding: 16px 0 12px; }
+    input[type="text"] { font-size: 20px; width: 100%; }
+    .controls button { padding: 12px 14px; font-size: 14px; flex: 1 1 auto; min-width: 90px; }
+  }
 </style>
 </head>
 <body>
+<div class="start-overlay" id="startOverlay">
+  <div class="panel">
+    <div class="logo">한글</div>
+    <h2>韓文發音練習</h2>
+    <p>聽韓文發音，輸入羅馬拼音作答。<br>點下方按鈕開始（首次點擊會啟用發音）。</p>
+    <button class="start-btn" id="startBtn">開始練習</button>
+  </div>
+</div>
+
 <div class="app">
   <h1>한글 발음 연습</h1>
   <div class="subtitle">Korean Hangul Pronunciation Practice · 韓文拼音練習</div>
@@ -192,7 +306,9 @@
   </div>
 
   <div class="input-row">
-    <input type="text" id="input" placeholder="輸入羅馬拼音…" autocomplete="off" autocapitalize="off" spellcheck="false" autofocus>
+    <input type="text" id="input" placeholder="輸入羅馬拼音…"
+           autocomplete="off" autocapitalize="none" autocorrect="off"
+           spellcheck="false" inputmode="latin" enterkeyhint="enter">
   </div>
 
   <div class="feedback" id="feedback"></div>
@@ -203,7 +319,10 @@
     <button id="skip">顯示答案</button>
   </div>
 
-  <div class="score" id="score">答對 0 / 0 · 正確率 —</div>
+  <div class="score-row">
+    <div class="score" id="score">答對 0 / 0 · 正確率 —</div>
+    <button class="reset-btn" id="reset">重置分數</button>
+  </div>
 
   <div class="voice-warn" id="voiceWarn">
     ⚠ 目前找不到韓語語音。請在系統設定中安裝韓語 TTS 語音包，或使用支援的瀏覽器（Chrome / Edge / Safari）。
@@ -288,6 +407,7 @@ function buildAll() {
           ...DATA.double_consonant, ...DATA.syllable];
 }
 
+const STORE_KEY = 'kp_score_v1';
 let mode = 'vowel';
 let current = null;
 let prev = null;
@@ -295,6 +415,7 @@ let correctCount = 0;
 let total = 0;
 let answered = false;
 let koVoice = null;
+let started = false;
 
 const els = {
   char: document.getElementById('char'),
@@ -302,7 +423,21 @@ const els = {
   feedback: document.getElementById('feedback'),
   score: document.getElementById('score'),
   voiceWarn: document.getElementById('voiceWarn'),
+  overlay: document.getElementById('startOverlay'),
 };
+
+function loadScore() {
+  try {
+    const s = JSON.parse(localStorage.getItem(STORE_KEY) || '{}');
+    correctCount = Number(s.correct) || 0;
+    total = Number(s.total) || 0;
+  } catch (e) {}
+}
+function saveScore() {
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify({ correct: correctCount, total: total }));
+  } catch (e) {}
+}
 
 function getList() {
   return mode === 'all' ? buildAll() : DATA[mode];
@@ -322,8 +457,10 @@ function pick() {
   els.feedback.className = 'feedback';
   els.input.value = '';
   els.input.className = '';
-  els.input.focus();
-  speak(current.say || current.c);
+  if (started) {
+    els.input.focus();
+    speak(current.say || current.c);
+  }
 }
 
 function loadVoice() {
@@ -342,6 +479,7 @@ function loadVoice() {
 }
 
 function speak(text) {
+  if (!started) return;
   if (!('speechSynthesis' in window)) return;
   try {
     window.speechSynthesis.cancel();
@@ -391,6 +529,22 @@ function showAnswer() {
 function updateScore() {
   const rate = total ? Math.round(correctCount / total * 100) + '%' : '—';
   els.score.textContent = `答對 ${correctCount} / ${total} · 正確率 ${rate}`;
+  saveScore();
+}
+
+function resetScore() {
+  if (!confirm('確定要重置分數？')) return;
+  correctCount = 0;
+  total = 0;
+  updateScore();
+}
+
+function startApp() {
+  if (started) return;
+  started = true;
+  els.overlay.classList.add('hidden');
+  speak(current.say || current.c);
+  els.input.focus();
 }
 
 document.querySelectorAll('#modes button').forEach(b => {
@@ -414,7 +568,14 @@ els.input.addEventListener('keydown', e => {
 document.getElementById('play').addEventListener('click', () => speak(current.say || current.c));
 document.getElementById('next').addEventListener('click', pick);
 document.getElementById('skip').addEventListener('click', showAnswer);
+document.getElementById('reset').addEventListener('click', resetScore);
 els.char.addEventListener('click', () => speak(current.say || current.c));
+
+els.overlay.addEventListener('click', startApp);
+document.getElementById('startBtn').addEventListener('click', e => {
+  e.stopPropagation();
+  startApp();
+});
 
 if ('speechSynthesis' in window) {
   loadVoice();
@@ -423,6 +584,8 @@ if ('speechSynthesis' in window) {
   els.voiceWarn.classList.add('show');
 }
 
+loadScore();
+updateScore();
 pick();
 </script>
 </body>
