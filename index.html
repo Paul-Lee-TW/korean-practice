@@ -562,12 +562,14 @@ els.input.addEventListener('keydown', e => {
     e.preventDefault();
     if (answered) pick();
     else check();
-    return;
   }
+});
+
+els.input.addEventListener('beforeinput', e => {
   if (answered && els.input.classList.contains('wrong')
-      && e.key.length === 1
-      && !e.ctrlKey && !e.metaKey && !e.altKey) {
-    els.input.value = '';
+      && e.inputType === 'insertText') {
+    e.preventDefault();
+    els.input.value = e.data || '';
     els.input.className = '';
   }
 });
