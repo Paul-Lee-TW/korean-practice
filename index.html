@@ -171,6 +171,15 @@
     transition: all 0.15s;
   }
   .controls button:hover { border-color: var(--primary); color: var(--primary); }
+  .controls button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    color: var(--muted);
+  }
+  .controls button:disabled:hover {
+    border-color: var(--border);
+    color: var(--muted);
+  }
   .controls button.primary {
     background: var(--primary);
     color: white;
@@ -332,7 +341,7 @@
   <div class="panel">
     <div class="logo">한글</div>
     <h2>韓文發音練習</h2>
-    <p>聽韓文發音，輸入羅馬拼音作答。<br>點下方按鈕開始（首次點擊會啟用發音）。</p>
+    <p>看韓文字輸入羅馬拼音作答。<br>答對後才會聽到發音並進入下一題。</p>
     <button class="start-btn" id="startBtn">開始練習</button>
   </div>
 </div>
@@ -352,8 +361,8 @@
   <div class="modes-hint">點選範圍可複選 · 「全部」= 全選</div>
 
   <div class="char-area">
-    <div class="character" id="char" title="點擊重播發音">가</div>
-    <div class="hint">點字符或按 🔊 重播發音 · Enter 提交答案</div>
+    <div class="character" id="char" title="答對後可點擊重播發音">가</div>
+    <div class="hint">輸入羅馬拼音 · Enter 提交 · 答對後播放發音</div>
   </div>
 
   <div class="input-row">
@@ -366,7 +375,7 @@
   <div class="feedback" id="feedback"></div>
 
   <div class="controls">
-    <button id="play">🔊 播放</button>
+    <button id="play" disabled>🔊 播放</button>
     <button id="next" class="primary">下一個 →</button>
     <button id="skip">顯示答案</button>
   </div>
@@ -477,6 +486,7 @@ const els = {
   score: document.getElementById('score'),
   voiceWarn: document.getElementById('voiceWarn'),
   overlay: document.getElementById('startOverlay'),
+  play: document.getElementById('play'),
 };
 
 function loadScore() {
@@ -526,10 +536,8 @@ function pick() {
   els.feedback.className = 'feedback';
   els.input.value = '';
   els.input.className = '';
-  if (started) {
-    els.input.focus();
-    speak(current.say || current.c);
-  }
+  els.play.disabled = true;
+  if (started) els.input.focus();
 }
 
 function loadVoice() {
@@ -547,9 +555,13 @@ function loadVoice() {
   }
 }
 
-function speak(text) {
-  if (!started) return;
-  if (!('speechSynthesis' in window)) return;
+function speak(text, onDone) {
+  let done = false;
+  const finish = () => { if (!done) { done = true; if (onDone) onDone(); } };
+  if (!started || !('speechSynthesis' in window)) {
+    if (onDone) setTimeout(finish, 400);
+    return;
+  }
   try {
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
@@ -557,8 +569,13 @@ function speak(text) {
     if (koVoice) u.voice = koVoice;
     u.rate = 0.85;
     u.pitch = 1.0;
+    if (onDone) {
+      u.onend = finish;
+      u.onerror = finish;
+      setTimeout(finish, 3000);
+    }
     window.speechSynthesis.speak(u);
-  } catch (e) { console.warn(e); }
+  } catch (e) { console.warn(e); finish(); }
 }
 
 function check() {
@@ -573,14 +590,17 @@ function check() {
     els.feedback.innerHTML = '✓ 正確！';
     els.feedback.className = 'feedback correct';
     answered = true;
-    setTimeout(() => { if (answered) pick(); }, 900);
-  } else {
-    els.input.className = 'wrong';
-    els.feedback.innerHTML = `✗ 正確答案：<span class="answer">${current.r.join(' / ')}</span>`;
-    els.feedback.className = 'feedback wrong';
-    answered = true;
-    speak(current.say || current.c);
+    els.play.disabled = false;
+    updateScore();
+    speak(current.say || current.c, () => { if (answered) pick(); });
+    return;
   }
+  els.input.className = 'wrong';
+  els.feedback.innerHTML = `✗ 正確答案：<span class="answer">${current.r.join(' / ')}</span>`;
+  els.feedback.className = 'feedback wrong';
+  answered = true;
+  els.play.disabled = false;
+  speak(current.say || current.c);
   updateScore();
 }
 
@@ -591,6 +611,7 @@ function showAnswer() {
   els.input.className = 'wrong';
   els.feedback.innerHTML = `答案：<span class="answer">${current.r.join(' / ')}</span>`;
   els.feedback.className = 'feedback wrong';
+  els.play.disabled = false;
   speak(current.say || current.c);
   updateScore();
 }
@@ -612,8 +633,14 @@ function startApp() {
   if (started) return;
   started = true;
   els.overlay.classList.add('hidden');
-  speak(current.say || current.c);
   els.input.focus();
+  if ('speechSynthesis' in window) {
+    try {
+      const u = new SpeechSynthesisUtterance('.');
+      u.volume = 0;
+      window.speechSynthesis.speak(u);
+    } catch (e) {}
+  }
 }
 
 document.querySelectorAll('#modes button').forEach(b => {
@@ -649,11 +676,17 @@ els.input.addEventListener('beforeinput', e => {
   }
 });
 
-document.getElementById('play').addEventListener('click', () => speak(current.say || current.c));
+els.play.addEventListener('click', () => {
+  if (!answered) return;
+  speak(current.say || current.c);
+});
 document.getElementById('next').addEventListener('click', pick);
 document.getElementById('skip').addEventListener('click', showAnswer);
 document.getElementById('reset').addEventListener('click', resetScore);
-els.char.addEventListener('click', () => speak(current.say || current.c));
+els.char.addEventListener('click', () => {
+  if (!answered) return;
+  speak(current.say || current.c);
+});
 
 els.overlay.addEventListener('click', startApp);
 document.getElementById('startBtn').addEventListener('click', e => {
