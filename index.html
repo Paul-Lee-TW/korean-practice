@@ -475,7 +475,8 @@ let current = null;
 let prev = null;
 let correctCount = 0;
 let total = 0;
-let answered = false;
+let firstAttempted = false;
+let solved = false;
 let koVoice = null;
 let started = false;
 
@@ -530,7 +531,8 @@ function pick() {
   } while (list.length > 1 && next === prev);
   prev = next;
   current = next;
-  answered = false;
+  firstAttempted = false;
+  solved = false;
   els.char.textContent = current.c;
   els.feedback.textContent = '';
   els.feedback.className = 'feedback';
@@ -579,41 +581,47 @@ function speak(text, onDone) {
 }
 
 function check() {
-  if (answered) return;
+  if (solved) return;
   const raw = els.input.value.trim().toLowerCase();
   if (!raw) return;
-  total++;
   const valid = current.r.map(x => x.toLowerCase());
-  if (valid.includes(raw)) {
-    correctCount++;
+  const isCorrect = valid.includes(raw);
+
+  if (!firstAttempted) {
+    firstAttempted = true;
+    total++;
+    if (isCorrect) correctCount++;
+    updateScore();
+  }
+  els.play.disabled = false;
+
+  if (isCorrect) {
+    solved = true;
     els.input.className = 'correct';
     els.feedback.innerHTML = '✓ 正確！';
     els.feedback.className = 'feedback correct';
-    answered = true;
-    els.play.disabled = false;
-    updateScore();
-    speak(current.say || current.c, () => { if (answered) pick(); });
+    speak(current.say || current.c, () => { if (solved) pick(); });
     return;
   }
+
   els.input.className = 'wrong';
   els.feedback.innerHTML = `✗ 正確答案：<span class="answer">${current.r.join(' / ')}</span>`;
   els.feedback.className = 'feedback wrong';
-  answered = true;
-  els.play.disabled = false;
   speak(current.say || current.c);
-  updateScore();
 }
 
 function showAnswer() {
-  if (answered) return;
-  total++;
-  answered = true;
+  if (solved) return;
+  if (!firstAttempted) {
+    firstAttempted = true;
+    total++;
+    updateScore();
+  }
   els.input.className = 'wrong';
   els.feedback.innerHTML = `答案：<span class="answer">${current.r.join(' / ')}</span>`;
   els.feedback.className = 'feedback wrong';
   els.play.disabled = false;
   speak(current.say || current.c);
-  updateScore();
 }
 
 function updateScore() {
@@ -662,13 +670,13 @@ document.querySelectorAll('#modes button').forEach(b => {
 els.input.addEventListener('keydown', e => {
   if (e.key === 'Enter') {
     e.preventDefault();
-    if (answered) pick();
+    if (solved) pick();
     else check();
   }
 });
 
 els.input.addEventListener('beforeinput', e => {
-  if (answered && els.input.classList.contains('wrong')
+  if (els.input.classList.contains('wrong')
       && e.inputType === 'insertText') {
     e.preventDefault();
     els.input.value = e.data || '';
@@ -677,14 +685,14 @@ els.input.addEventListener('beforeinput', e => {
 });
 
 els.play.addEventListener('click', () => {
-  if (!answered) return;
+  if (!firstAttempted) return;
   speak(current.say || current.c);
 });
 document.getElementById('next').addEventListener('click', pick);
 document.getElementById('skip').addEventListener('click', showAnswer);
 document.getElementById('reset').addEventListener('click', resetScore);
 els.char.addEventListener('click', () => {
-  if (!answered) return;
+  if (!firstAttempted) return;
   speak(current.say || current.c);
 });
 
