@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>한글 발음 연습 — Korean Hangul Practice</title>
+<style>
+  :root {
+    --bg: #f4f6fa;
+    --card: #ffffff;
+    --text: #222;
+    --muted: #777;
+    --primary: #4a6cf7;
+    --primary-dark: #3852c9;
+    --correct: #2e7d32;
+    --correct-bg: #e8f5e9;
+    --wrong: #c62828;
+    --wrong-bg: #ffebee;
+    --border: #d8dde6;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 24px;
+  }
+  .app {
+    background: var(--card);
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+    max-width: 640px;
+    width: 100%;
+    padding: 28px 32px 32px;
+  }
+  h1 {
+    margin: 0 0 4px;
+    font-size: 24px;
+    text-align: center;
+  }
+  .subtitle {
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    margin-bottom: 20px;
+  }
+  .modes {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  .modes button {
+    padding: 8px 14px;
+    border: 1.5px solid var(--border);
+    background: var(--card);
+    color: var(--text);
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.15s;
+  }
+  .modes button:hover { border-color: var(--primary); }
+  .modes button.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+  }
+  .char-area {
+    text-align: center;
+    padding: 24px 0 16px;
+    user-select: none;
+  }
+  .character {
+    font-size: 140px;
+    line-height: 1;
+    cursor: pointer;
+    display: inline-block;
+    padding: 8px 24px;
+    border-radius: 12px;
+    transition: background 0.15s;
+  }
+  .character:hover { background: #f0f3fa; }
+  .character:active { transform: scale(0.97); }
+  .hint {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  .input-row {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 8px;
+  }
+  input[type="text"] {
+    font-size: 22px;
+    padding: 10px 14px;
+    width: 240px;
+    text-align: center;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    outline: none;
+    transition: all 0.15s;
+  }
+  input[type="text"]:focus { border-color: var(--primary); }
+  input.correct { border-color: var(--correct); background: var(--correct-bg); }
+  input.wrong { border-color: var(--wrong); background: var(--wrong-bg); }
+  .feedback {
+    text-align: center;
+    margin: 14px 0 4px;
+    min-height: 28px;
+    font-size: 17px;
+  }
+  .feedback.correct { color: var(--correct); }
+  .feedback.wrong { color: var(--wrong); }
+  .feedback .answer {
+    font-weight: 600;
+    font-size: 19px;
+  }
+  .controls {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+  .controls button {
+    padding: 9px 16px;
+    font-size: 14px;
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .controls button:hover { border-color: var(--primary); color: var(--primary); }
+  .controls button.primary {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+  }
+  .controls button.primary:hover {
+    background: var(--primary-dark);
+    color: white;
+  }
+  .score {
+    text-align: center;
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .voice-warn {
+    background: #fff8e1;
+    color: #8a6d00;
+    border: 1px solid #ffe082;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 12px;
+    margin-top: 12px;
+    text-align: center;
+    display: none;
+  }
+  .voice-warn.show { display: block; }
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>한글 발음 연습</h1>
+  <div class="subtitle">Korean Hangul Pronunciation Practice · 韓文拼音練習</div>
+
+  <div class="modes" id="modes">
+    <button data-mode="vowel" class="active">母音 모음</button>
+    <button data-mode="compound_vowel">複合母音</button>
+    <button data-mode="consonant">子音 자음</button>
+    <button data-mode="double_consonant">雙子音</button>
+    <button data-mode="syllable">組合音</button>
+    <button data-mode="all">全部</button>
+  </div>
+
+  <div class="char-area">
+    <div class="character" id="char" title="點擊重播發音">가</div>
+    <div class="hint">點字符或按 🔊 重播發音 · Enter 提交答案</div>
+  </div>
+
+  <div class="input-row">
+    <input type="text" id="input" placeholder="輸入羅馬拼音…" autocomplete="off" autocapitalize="off" spellcheck="false" autofocus>
+  </div>
+
+  <div class="feedback" id="feedback"></div>
+
+  <div class="controls">
+    <button id="play">🔊 播放</button>
+    <button id="next" class="primary">下一個 →</button>
+    <button id="skip">顯示答案</button>
+  </div>
+
+  <div class="score" id="score">答對 0 / 0 · 正確率 —</div>
+
+  <div class="voice-warn" id="voiceWarn">
+    ⚠ 目前找不到韓語語音。請在系統設定中安裝韓語 TTS 語音包，或使用支援的瀏覽器（Chrome / Edge / Safari）。
+  </div>
+</div>
+
+<script>
+const DATA = {
+  vowel: [
+    { c: 'ㅏ', r: ['a'] },
+    { c: 'ㅑ', r: ['ya'] },
+    { c: 'ㅓ', r: ['eo'] },
+    { c: 'ㅕ', r: ['yeo'] },
+    { c: 'ㅗ', r: ['o'] },
+    { c: 'ㅛ', r: ['yo'] },
+    { c: 'ㅜ', r: ['u'] },
+    { c: 'ㅠ', r: ['yu'] },
+    { c: 'ㅡ', r: ['eu'] },
+    { c: 'ㅣ', r: ['i'] },
+  ],
+  compound_vowel: [
+    { c: 'ㅐ', r: ['ae'] },
+    { c: 'ㅒ', r: ['yae'] },
+    { c: 'ㅔ', r: ['e'] },
+    { c: 'ㅖ', r: ['ye'] },
+    { c: 'ㅘ', r: ['wa'] },
+    { c: 'ㅙ', r: ['wae'] },
+    { c: 'ㅚ', r: ['oe'] },
+    { c: 'ㅝ', r: ['wo'] },
+    { c: 'ㅞ', r: ['we'] },
+    { c: 'ㅟ', r: ['wi'] },
+    { c: 'ㅢ', r: ['ui'] },
+  ],
+  consonant: [
+    { c: 'ㄱ', r: ['g', 'k'], say: '가' },
+    { c: 'ㄴ', r: ['n'], say: '나' },
+    { c: 'ㄷ', r: ['d', 't'], say: '다' },
+    { c: 'ㄹ', r: ['r', 'l'], say: '라' },
+    { c: 'ㅁ', r: ['m'], say: '마' },
+    { c: 'ㅂ', r: ['b', 'p'], say: '바' },
+    { c: 'ㅅ', r: ['s'], say: '사' },
+    { c: 'ㅇ', r: ['ng', '-', ''], say: '아' },
+    { c: 'ㅈ', r: ['j'], say: '자' },
+    { c: 'ㅊ', r: ['ch'], say: '차' },
+    { c: 'ㅋ', r: ['k'], say: '카' },
+    { c: 'ㅌ', r: ['t'], say: '타' },
+    { c: 'ㅍ', r: ['p'], say: '파' },
+    { c: 'ㅎ', r: ['h'], say: '하' },
+  ],
+  double_consonant: [
+    { c: 'ㄲ', r: ['kk', 'gg'], say: '까' },
+    { c: 'ㄸ', r: ['tt', 'dd'], say: '따' },
+    { c: 'ㅃ', r: ['pp', 'bb'], say: '빠' },
+    { c: 'ㅆ', r: ['ss'], say: '싸' },
+    { c: 'ㅉ', r: ['jj'], say: '짜' },
+  ],
+  syllable: [
+    { c: '가', r: ['ga'] }, { c: '나', r: ['na'] }, { c: '다', r: ['da'] },
+    { c: '라', r: ['ra'] }, { c: '마', r: ['ma'] }, { c: '바', r: ['ba'] },
+    { c: '사', r: ['sa'] }, { c: '아', r: ['a'] }, { c: '자', r: ['ja'] },
+    { c: '차', r: ['cha'] }, { c: '카', r: ['ka'] }, { c: '타', r: ['ta'] },
+    { c: '파', r: ['pa'] }, { c: '하', r: ['ha'] },
+    { c: '거', r: ['geo'] }, { c: '너', r: ['neo'] }, { c: '더', r: ['deo'] },
+    { c: '러', r: ['reo'] }, { c: '머', r: ['meo'] }, { c: '버', r: ['beo'] },
+    { c: '서', r: ['seo'] }, { c: '어', r: ['eo'] }, { c: '저', r: ['jeo'] },
+    { c: '고', r: ['go'] }, { c: '노', r: ['no'] }, { c: '도', r: ['do'] },
+    { c: '로', r: ['ro'] }, { c: '모', r: ['mo'] }, { c: '보', r: ['bo'] },
+    { c: '소', r: ['so'] }, { c: '오', r: ['o'] }, { c: '조', r: ['jo'] },
+    { c: '구', r: ['gu'] }, { c: '누', r: ['nu'] }, { c: '두', r: ['du'] },
+    { c: '루', r: ['ru'] }, { c: '무', r: ['mu'] }, { c: '부', r: ['bu'] },
+    { c: '수', r: ['su'] }, { c: '우', r: ['u'] }, { c: '주', r: ['ju'] },
+    { c: '기', r: ['gi'] }, { c: '니', r: ['ni'] }, { c: '디', r: ['di'] },
+    { c: '리', r: ['ri'] }, { c: '미', r: ['mi'] }, { c: '비', r: ['bi'] },
+    { c: '시', r: ['si', 'shi'] }, { c: '이', r: ['i'] }, { c: '지', r: ['ji'] },
+    { c: '안녕', r: ['annyeong'] }, { c: '사랑', r: ['sarang'] },
+    { c: '한국', r: ['hanguk'] }, { c: '감사', r: ['gamsa'] },
+  ],
+};
+
+function buildAll() {
+  return [...DATA.vowel, ...DATA.compound_vowel, ...DATA.consonant,
+          ...DATA.double_consonant, ...DATA.syllable];
+}
+
+let mode = 'vowel';
+let current = null;
+let prev = null;
+let correctCount = 0;
+let total = 0;
+let answered = false;
+let koVoice = null;
+
+const els = {
+  char: document.getElementById('char'),
+  input: document.getElementById('input'),
+  feedback: document.getElementById('feedback'),
+  score: document.getElementById('score'),
+  voiceWarn: document.getElementById('voiceWarn'),
+};
+
+function getList() {
+  return mode === 'all' ? buildAll() : DATA[mode];
+}
+
+function pick() {
+  const list = getList();
+  let next;
+  do {
+    next = list[Math.floor(Math.random() * list.length)];
+  } while (list.length > 1 && next === prev);
+  prev = next;
+  current = next;
+  answered = false;
+  els.char.textContent = current.c;
+  els.feedback.textContent = '';
+  els.feedback.className = 'feedback';
+  els.input.value = '';
+  els.input.className = '';
+  els.input.focus();
+  speak(current.say || current.c);
+}
+
+function loadVoice() {
+  if (!('speechSynthesis' in window)) {
+    els.voiceWarn.classList.add('show');
+    return;
+  }
+  const voices = window.speechSynthesis.getVoices();
+  koVoice = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('ko'))
+         || voices.find(v => /korean/i.test(v.name));
+  if (!koVoice && voices.length > 0) {
+    els.voiceWarn.classList.add('show');
+  } else {
+    els.voiceWarn.classList.remove('show');
+  }
+}
+
+function speak(text) {
+  if (!('speechSynthesis' in window)) return;
+  try {
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'ko-KR';
+    if (koVoice) u.voice = koVoice;
+    u.rate = 0.85;
+    u.pitch = 1.0;
+    window.speechSynthesis.speak(u);
+  } catch (e) { console.warn(e); }
+}
+
+function check() {
+  if (answered) return;
+  const raw = els.input.value.trim().toLowerCase();
+  if (!raw) return;
+  total++;
+  const valid = current.r.map(x => x.toLowerCase());
+  if (valid.includes(raw)) {
+    correctCount++;
+    els.input.className = 'correct';
+    els.feedback.innerHTML = '✓ 正確！';
+    els.feedback.className = 'feedback correct';
+    answered = true;
+    setTimeout(() => { if (answered) pick(); }, 900);
+  } else {
+    els.input.className = 'wrong';
+    els.feedback.innerHTML = `✗ 正確答案：<span class="answer">${current.r.join(' / ')}</span>`;
+    els.feedback.className = 'feedback wrong';
+    answered = true;
+    speak(current.say || current.c);
+  }
+  updateScore();
+}
+
+function showAnswer() {
+  if (answered) return;
+  total++;
+  answered = true;
+  els.input.className = 'wrong';
+  els.feedback.innerHTML = `答案：<span class="answer">${current.r.join(' / ')}</span>`;
+  els.feedback.className = 'feedback wrong';
+  speak(current.say || current.c);
+  updateScore();
+}
+
+function updateScore() {
+  const rate = total ? Math.round(correctCount / total * 100) + '%' : '—';
+  els.score.textContent = `答對 ${correctCount} / ${total} · 正確率 ${rate}`;
+}
+
+document.querySelectorAll('#modes button').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('#modes button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    mode = b.dataset.mode;
+    prev = null;
+    pick();
+  });
+});
+
+els.input.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    if (answered) pick();
+    else check();
+  }
+});
+
+document.getElementById('play').addEventListener('click', () => speak(current.say || current.c));
+document.getElementById('next').addEventListener('click', pick);
+document.getElementById('skip').addEventListener('click', showAnswer);
+els.char.addEventListener('click', () => speak(current.say || current.c));
+
+if ('speechSynthesis' in window) {
+  loadVoice();
+  window.speechSynthesis.onvoiceschanged = loadVoice;
+} else {
+  els.voiceWarn.classList.add('show');
+}
+
+pick();
+</script>
+</body>
+</html>
