@@ -598,9 +598,16 @@ function check() {
   if (isCorrect) {
     solved = true;
     els.input.className = 'correct';
-    els.feedback.innerHTML = '✓ 正確！';
+    const others = current.r.filter(x => x.toLowerCase() !== raw && x !== '');
+    els.feedback.innerHTML = others.length
+      ? `✓ 正確！其他答案：<span class="answer">${others.join(' / ')}</span>`
+      : '✓ 正確！';
     els.feedback.className = 'feedback correct';
-    speak(current.say || current.c, () => { if (solved) pick(); });
+    const advanceDelay = others.length ? 1200 : 100;
+    speak(current.say || current.c, () => {
+      if (!solved) return;
+      setTimeout(() => { if (solved) pick(); }, advanceDelay);
+    });
     return;
   }
 
