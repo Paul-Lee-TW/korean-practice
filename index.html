@@ -70,7 +70,13 @@
     gap: 6px;
     justify-content: center;
     flex-wrap: wrap;
-    margin-bottom: 20px;
+    margin-bottom: 6px;
+  }
+  .modes-hint {
+    text-align: center;
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 16px;
   }
   .modes button {
     padding: 10px 16px;
@@ -299,6 +305,7 @@
     <button data-mode="syllable">組合音</button>
     <button data-mode="all">全部</button>
   </div>
+  <div class="modes-hint">點選範圍可複選 · 「全部」= 全選</div>
 
   <div class="char-area">
     <div class="character" id="char" title="點擊重播發音">가</div>
@@ -408,7 +415,8 @@ function buildAll() {
 }
 
 const STORE_KEY = 'kp_score_v1';
-let mode = 'vowel';
+const CATEGORY_MODES = ['vowel', 'compound_vowel', 'consonant', 'double_consonant', 'syllable'];
+let selectedModes = new Set(['vowel']);
 let current = null;
 let prev = null;
 let correctCount = 0;
@@ -440,7 +448,23 @@ function saveScore() {
 }
 
 function getList() {
-  return mode === 'all' ? buildAll() : DATA[mode];
+  const items = [];
+  selectedModes.forEach(m => {
+    if (DATA[m]) items.push(...DATA[m]);
+  });
+  return items;
+}
+
+function updateModeButtons() {
+  document.querySelectorAll('#modes button').forEach(b => {
+    const m = b.dataset.mode;
+    if (m === 'all') {
+      const allSelected = CATEGORY_MODES.every(c => selectedModes.has(c));
+      b.classList.toggle('active', allSelected);
+    } else {
+      b.classList.toggle('active', selectedModes.has(m));
+    }
+  });
 }
 
 function pick() {
@@ -549,9 +573,15 @@ function startApp() {
 
 document.querySelectorAll('#modes button').forEach(b => {
   b.addEventListener('click', () => {
-    document.querySelectorAll('#modes button').forEach(x => x.classList.remove('active'));
-    b.classList.add('active');
-    mode = b.dataset.mode;
+    const m = b.dataset.mode;
+    if (m === 'all') {
+      selectedModes = new Set(CATEGORY_MODES);
+    } else if (selectedModes.has(m)) {
+      if (selectedModes.size > 1) selectedModes.delete(m);
+    } else {
+      selectedModes.add(m);
+    }
+    updateModeButtons();
     prev = null;
     pick();
   });
