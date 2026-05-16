@@ -274,12 +274,56 @@
     }
     h1 { font-size: 22px; }
     .subtitle { font-size: 12px; margin-bottom: 16px; }
-    .modes { gap: 5px; margin-bottom: 16px; }
+    .modes { gap: 5px; }
     .modes button { padding: 9px 13px; font-size: 14px; }
     .character { font-size: 110px; padding: 6px 16px; }
     .char-area { padding: 16px 0 12px; }
     input[type="text"] { font-size: 20px; width: 100%; }
     .controls button { padding: 12px 14px; font-size: 14px; flex: 1 1 auto; min-width: 90px; }
+  }
+
+  body.keyboard-up h1,
+  body.keyboard-up .subtitle,
+  body.keyboard-up .modes-hint,
+  body.keyboard-up .char-area .hint,
+  body.keyboard-up .score-row,
+  body.keyboard-up .voice-warn {
+    display: none;
+  }
+  body.keyboard-up {
+    padding-top: max(6px, env(safe-area-inset-top));
+    padding-bottom: 6px;
+  }
+  body.keyboard-up .app {
+    padding: 12px 16px 14px;
+  }
+  body.keyboard-up .modes { margin-bottom: 8px; }
+  body.keyboard-up .modes button {
+    padding: 6px 11px;
+    font-size: 13px;
+    min-height: 32px;
+  }
+  body.keyboard-up .char-area { padding: 6px 0 4px; }
+  body.keyboard-up .character {
+    font-size: 68px;
+    padding: 2px 12px;
+  }
+  body.keyboard-up .input-row { margin-top: 2px; }
+  body.keyboard-up input[type="text"] {
+    font-size: 18px;
+    padding: 8px 12px;
+    min-height: 40px;
+  }
+  body.keyboard-up .feedback {
+    margin: 8px 0 0;
+    min-height: 22px;
+    font-size: 14px;
+  }
+  body.keyboard-up .controls { margin-top: 10px; gap: 6px; }
+  body.keyboard-up .controls button {
+    padding: 9px 12px;
+    min-height: 38px;
+    font-size: 13px;
   }
 </style>
 </head>
@@ -621,6 +665,17 @@ if ('speechSynthesis' in window) {
   window.speechSynthesis.onvoiceschanged = loadVoice;
 } else {
   els.voiceWarn.classList.add('show');
+}
+
+function updateKeyboardState() {
+  const vv = window.visualViewport;
+  if (!vv) return;
+  const kbHeight = window.innerHeight - vv.height - vv.offsetTop;
+  document.body.classList.toggle('keyboard-up', kbHeight > 120);
+}
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', updateKeyboardState);
+  window.visualViewport.addEventListener('scroll', updateKeyboardState);
 }
 
 loadScore();
